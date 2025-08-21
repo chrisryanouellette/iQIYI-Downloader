@@ -1,23 +1,24 @@
 export const metadataSnippet = `
 (() => {
   const movie = window.playerObject.package.engine.movieinfo.current.vidl;
-  const output = [];
+  let selected = null;
   for (const info of movie) {
-    let m3u8 = \`#EXTM3U\n#EXT-X-TARGETDURATION:10\n\`;
     if (!info.playlist) continue;
     if (!info.playlist.urls.length) continue;
-    const qdpDict = info.playlist.qdp;
-    const durations = info.playlist.durations;
-    for (const [i, baseUrl] of info.playlist.urls.entries()) {
-      const qdpKey = baseUrl.split(".ts")[0].split("/").pop();
-      const fullUrl = \`https:\${baseUrl}\${qdpDict[qdpKey]}\`;
-      const duration = durations[i];
-      m3u8 += \`#EXTINF:\${duration},\n\${fullUrl}\n\`;
-    }
-    m3u8 += "#EXT-X-ENDLIST";
-    output.push(m3u8);
+    if (selected?.vsize > info.vsize) continue;
+    selected = info;
   }
-  const blob = new Blob(output, { type: "text/plain" });
+  let m3u8 = \`#EXTM3U\n#EXT-X-TARGETDURATION:10\n\`;
+  const qdpDict = selected.playlist.qdp;
+  const durations = selected.playlist.durations;
+  for (const [i, baseUrl] of selected.playlist.urls.entries()) {
+    const qdpKey = baseUrl.split(".ts")[0].split("/").pop();
+    const fullUrl = \`https:\${baseUrl}\${qdpDict[qdpKey]}\`;
+    const duration = durations[i];
+    m3u8 += \`#EXTINF:\${duration},\n\${fullUrl}\n\`;
+  }
+  m3u8 += "#EXT-X-ENDLIST";
+  const blob = new Blob([m3u8], { type: "text/plain" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "<--NAME-->";
@@ -56,4 +57,4 @@ export const subtitleSnippet = `
 export const terminalNavigationSnippet = `cd ~/Downloads`;
 
 export const ffmpegSnippet =
-  "ffmpeg -protocol_whitelist file,http,https,tcp,tls -i <--NAME-->.m3u8 -i <--NAME-->.vtt -c copy -bsf:a aac_adtstoasc -c:s mov_text -metadata:s:s:0 language=eng <--NAME-->.mp4";
+  'ffmpeg -protocol_whitelist file,http,https,tcp,tls -i "<--NAME-->.m3u8" -i "<--NAME-->.vtt" -c copy -bsf:a aac_adtstoasc -c:s mov_text -metadata:s:s:0 language=eng "<--NAME-->.mp4"';
